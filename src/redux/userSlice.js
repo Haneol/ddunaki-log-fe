@@ -9,6 +9,7 @@ const initialState = {
     email: "",
   },
   //
+  mySpace: [],
 };
 
 export const loginAsync = createAsyncThunk("user/login", async (data) => {
@@ -43,6 +44,14 @@ export const resignAsync = createAsyncThunk(
   }
 );
 
+export const getMySpaceListAsync = createAsyncThunk(
+  "user/getMySpaceList",
+  async (data) => {
+    const response = await api.getMySpaceList(data);
+    return response.data;
+  }
+);
+
 export const userSlice = createSlice({
   name: "user",
   initialState,
@@ -53,10 +62,13 @@ export const userSlice = createSlice({
     setUser: (state, action) => {
       state.user = action.payload;
     },
+    setMySpace: (state, action) => {
+      state.mySpace = action.payload;
+    },
   },
 });
 
-export const { userLogOut, setUser } = userSlice.actions;
+export const { userLogOut, setUser, setMySpace } = userSlice.actions;
 
 export const selectUser = (state) => state.user;
 

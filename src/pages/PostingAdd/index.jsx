@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import theme from "../../theme";
 import Button from "../../components/Button";
@@ -7,6 +7,13 @@ import SchedulePicker from "./template/ScheduleSelector";
 import SpaceSelector from "./template/SpaceSelector";
 import ScheduleSelector from "./template/ScheduleSelector";
 import ScheduleSelectorModal from "./template/ScheduleSelectorModal";
+import { useDispatch, useSelector } from "react-redux";
+import { getMySpaceListAsync, selectUser } from "../../redux/userSlice";
+import {
+  addPostingAsync,
+  setSelectedPostingId,
+} from "../../redux/postingSlice";
+import { useNavigate } from "react-router";
 
 const PostingAddContainer = styled.div`
   display: flex;
@@ -101,14 +108,20 @@ function PostingAdd() {
   const [space, setSpace] = useState({}); // spaceId, name, city, nation
   const [title, setTitle] = useState("");
   const [isLock, setIsLock] = useState(false);
-  const [schedule, setSchdule] = useState({}); // sheduleId, date, spot, memo
-  const [mainImg, setMainImg] = useState("https://i.imgur.com/0TIs0vO.png");
+  const [schedule, setSchedule] = useState({}); // sheduleId, date, spot, memo
+  const [mainImg, setMainImg] = useState(null);
   const [content, setContent] = useState("");
 
   // state
   const [isLockBtnHovered, setIsLockBtnHovered] = useState(false);
   const [isLockBtnClicked, setIsLockBtnClicked] = useState(false);
   const [isValid, setIsValid] = useState(false);
+  const [spaceList, setSpaceList] = useState([]);
+  const { user, mySpace } = useSelector(selectUser);
+
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const isInitialMount = useRef(true);
 
   // 버튼 활성화 조건
   useEffect(() => {
@@ -124,24 +137,61 @@ function PostingAdd() {
     );
   }, [space, schedule, title, content]);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    // if (isInitialMount.current) {
+    //   setSpaceList(mySpace);
+    //   isInitialMount.current = false; // 첫 렌더링에서는 true, 이후 false로 설정
+    // } else {
+    dispatch(getMySpaceListAsync())
+      .unwrap()
+      .then((res) => {
+        setSpaceList(res);
+      });
+    // }
+  }, [user]);
+
   const handleSave = () => {
     const data = {
-      spaceId: space.id,
+      spaceId: space.spaceId,
       title: title,
       accessLevel: isLock ? "MEMBER_ONLY" : "PUBLIC",
-      scheduleId: schedule.id,
-      mainImg: mainImg,
+      scheduleId: schedule.scheduleId,
+      mainImgUrl:
+        content === ""
+          ? "https://i.imgur.com/0TIs0vO.png"
+          : extractFirstImageUrl(content),
       content: content,
     };
 
-    console.log(data);
+    dispatch(addPostingAsync(data))
+      .unwrap()
+      .then((res) => {
+        dispatch(setSelectedPostingId(res.postingId));
+        alert("작성되었습니다.");
+        navigate(`/posting/detail/${res.postingId}`);
+      });
   };
+
+  function extractFirstImageUrl(markdownContent) {
+    const regex = /!\[.*?\]\((.*?)\)/;
+    const match = markdownContent.match(regex);
+    if (match && match[1]) {
+      return match[1]; // 첫 번째 캡처 그룹, 즉 URL 부분을 반환
+    }
+    return null; // 매치되는 이미지가 없을 경우 null 반환
+  }
 
   return (
     <PostingAddContainer>
       <EditorContainer>
         <EditorHeader>
-          <SpaceSelector setSpace={setSpace} />
+          <SpaceSelector
+            space={space}
+            setSpace={setSpace}
+            spaceList={spaceList}
+          />
+
           <TitleArea>
             <TitleInput
               placeholder="제목을 입력하세요."
@@ -187,7 +237,11 @@ function PostingAdd() {
               )}
             </LockButton>
           </TitleArea>
-          <SchedulePicker />
+          <SchedulePicker
+            setSchedule={setSchedule}
+            schedule={schedule}
+            disabled={space.spaceId === undefined}
+          />
         </EditorHeader>
         <CustomEditor setContent={setContent} />
       </EditorContainer>
@@ -203,7 +257,7 @@ function PostingAdd() {
       </SubmitContainer>
       <Background />
       <Background2 />
-      <ScheduleSelectorModal setSchdule={setSchdule} />
+      <ScheduleSelectorModal setSchdule={setSchedule} />
     </PostingAddContainer>
   );
 }
