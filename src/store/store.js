@@ -5,9 +5,11 @@ import { combineReducers } from "redux";
 
 import userSlice from "../redux/userSlice";
 import followSlice from "../redux/followSlice";
-import postingSlice from "../redux/UserSlice";
+import postingSlice from "../redux/postingSlice";
 import spaceSlice from "../redux/spaceSlice";
 import costSlice from "../redux/costSlice";
+import modalSlice from "../redux/modalSlice";
+import scheduleSlice from "../redux/scheduleSlice";
 
 const reducers = combineReducers({
   user: userSlice,
@@ -15,6 +17,8 @@ const reducers = combineReducers({
   posting: postingSlice,
   space: spaceSlice,
   cost: costSlice,
+  modal: modalSlice,
+  schedule: scheduleSlice,
 });
 
 const persistConfig = {
@@ -25,7 +29,7 @@ const persistConfig = {
 const persistedReducer = persistReducer(persistConfig, reducers);
 
 export const store = configureStore({
-  reducer: reducers,
+  reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false,
